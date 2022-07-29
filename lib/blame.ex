@@ -1,66 +1,38 @@
 defmodule IFix.Blame do
   @moduledoc """
-  Configures a resource to log who created and last edited a resource, and when.
-
-  WIP!
-
-  So, this extension creates two (one for creates, another for updates):
-
-  * timestamps, so you no longer need to add timestamps to your resources
-  * relationships, for who did the create or update
-
-  and adds changes to all create and update actions, to populate the created_user
-  and updated_user with the current actor
-
-  You will need to configure the api and resource module to use for the actor:
-
-      blame do
-        actor Portal.Accounts.User
-        api Portal.Accounts
-      end
-
-  Improvements
-  ============
-
-  I'd like to pass the api and the actor in config - for most apps it's going to be the
-  same api and actor for all resources. Maybe you can extend the Api dsl to include this
-  and use that as the default config for all resources?
-
-  I'd like to be able to configure the elements (bad name) to be tracked for blame.
-  This is an example of the default config:
-
-  blame do
-    api ...
-    actor ...
-
-    element :created, action_type: :create, actions: :all
-    element :updated, action_type: :update, actions: :all
-  end
-
-  But you might want to be able to track some special elements:
-
-      element :password_changed, action_type: :update, actions: [:changed_password, :admin_changed_password]
-
-  There's currently a lot of duplication in the transformers, but that will go away when you implement the elements
-  configuration
-
-  I'm not sure if I like the setting of updated (user and timestamp) at the time of creation. Maybe they should remain nil?
-  Doing that makes more sense in light of extending the tracked elements - ie, we probably don't want the :password_changed
-  element to be set to the current user and timestamp when creating a new user. Or maybe it is should be configurable in the
-  update (action_type) elements
-
-  Maybe this should be the config:
-
-    tracking do
-      create :created, actions: :all
-      update :updated, actions: [:update, :other_update]
-      update :password_changed, actions: [:changed_password, :admin_changed_password]
-    end
+  Extend a resource to log who created and last edited a resource, and when.
   """
 
+  @event_schema [
+    name: [
+      type: :atom,
+      required: true,
+      doc: "The name of the event"
+    ],
+    action_type: [
+      type: :atom,
+      required: false
+    ],
+    actions: [
+      type: {:list, :atom},
+      required: false
+    ]
+  ]
+  @event %Ash.Dsl.Entity{
+    name: :event,
+    describe: "Adds an event to capture for blame",
+    examples: [
+      "event :created, action_type: :create",
+      "event :updated, actions: [:update, :other_update]",
+      "event :password_changed, actions: [:change_password, :reset_password]"
+    ],
+    target: IFix.Blame.Event,
+    args: [:name],
+    schema: @event_schema
+  }
   @blame %Ash.Dsl.Section{
     name: :blame,
-    describe: "A section for configuring how blame is configured for a resource.",
+    describe: "Defines how blame is configured for a resource.",
     schema: [
       actor: [
         type: {:or, [:atom, :mod_arg]},
@@ -71,22 +43,54 @@ defmodule IFix.Blame do
       api: [
         type: :atom,
         doc: """
-        The api that the actor belongs to
+        The api that the actor resource belongs to
         """
       ]
+    ],
+    entities: [
+      @event
     ]
   }
 
   use Ash.Dsl.Extension,
     sections: [@blame],
     transformers: [
-      IFix.Blame.Transformers.SetupBlame,
-      IFix.Blame.Transformers.AddChange
-      # IFix.Blame.Transformers.Inspect
+      IFix.Blame.Transformers.SetDefaultEvents,
+      IFix.Blame.Transformers.AddTimestamps,
+      IFix.Blame.Transformers.AddRelationships,
+      IFix.Blame.Transformers.AddChanges
     ]
 
-  def actor(resource) do
-    Ash.Dsl.Extension.get_opt(resource, [:blame], :actor, [])
+  def events(resource) do
+    Ash.Dsl.Extension.get_entities(resource, [:blame])
+  end
+
+  def actor_resource(resource) do
+    case Ash.Dsl.Extension.get_opt(resource, [:blame], :actor, []) do
+      {resource, _field} -> resource
+      resource -> resource
+    end
+  end
+
+  def actor_field(resource) do
+    case Ash.Dsl.Extension.get_opt(resource, [:blame], :actor, []) do
+      {_resource, field} -> field
+      _ -> :id
+    end
+  end
+
+  def actor_field_name(event) do
+    event.name
+    |> Atom.to_string()
+    |> Kernel.<>("_user")
+    |> String.to_atom()
+  end
+
+  def timestamp_field_name(event) do
+    event.name
+    |> Atom.to_string()
+    |> Kernel.<>("_date")
+    |> String.to_atom()
   end
 
   def api(resource) do

@@ -1,4 +1,4 @@
-locals_without_parens = [actor: 1, api: 1]
+locals_without_parens = [actor: 1, api: 1, event: 2]
 
 [
   inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
