@@ -18,7 +18,7 @@ defmodule Blame.MixProject do
 
   defp deps do
     [
-      {:ash, "~> 1.52.0-rc.20"}
+      {:ash, "~> 2.0.0-rc.0"}
     ]
   end
 end

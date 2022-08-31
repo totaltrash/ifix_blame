@@ -18,7 +18,7 @@ defmodule IFix.Blame do
       required: false
     ]
   ]
-  @event %Ash.Dsl.Entity{
+  @event %Spark.Dsl.Entity{
     name: :event,
     describe: "Adds an event to capture for blame",
     examples: [
@@ -30,7 +30,7 @@ defmodule IFix.Blame do
     args: [:name],
     schema: @event_schema
   }
-  @blame %Ash.Dsl.Section{
+  @blame %Spark.Dsl.Section{
     name: :blame,
     describe: "Defines how blame is configured for a resource.",
     schema: [
@@ -52,7 +52,7 @@ defmodule IFix.Blame do
     ]
   }
 
-  use Ash.Dsl.Extension,
+  use Spark.Dsl.Extension,
     sections: [@blame],
     transformers: [
       IFix.Blame.Transformers.SetDefaultEvents,
@@ -60,40 +60,4 @@ defmodule IFix.Blame do
       IFix.Blame.Transformers.AddRelationships,
       IFix.Blame.Transformers.AddChanges
     ]
-
-  def events(resource) do
-    Ash.Dsl.Extension.get_entities(resource, [:blame])
-  end
-
-  def actor_resource(resource) do
-    case Ash.Dsl.Extension.get_opt(resource, [:blame], :actor, []) do
-      {resource, _field} -> resource
-      resource -> resource
-    end
-  end
-
-  def actor_field(resource) do
-    case Ash.Dsl.Extension.get_opt(resource, [:blame], :actor, []) do
-      {_resource, field} -> field
-      _ -> :id
-    end
-  end
-
-  def actor_field_name(event) do
-    event.name
-    |> Atom.to_string()
-    |> Kernel.<>("_user")
-    |> String.to_atom()
-  end
-
-  def timestamp_field_name(event) do
-    event.name
-    |> Atom.to_string()
-    |> Kernel.<>("_date")
-    |> String.to_atom()
-  end
-
-  def api(resource) do
-    Ash.Dsl.Extension.get_opt(resource, [:blame], :api, [])
-  end
 end

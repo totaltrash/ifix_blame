@@ -1,14 +1,14 @@
 defmodule IFix.Blame.Transformers.SetDefaultEvents do
-  use Ash.Dsl.Transformer
+  use Spark.Dsl.Transformer
 
-  alias Ash.Dsl.Transformer
+  alias Spark.Dsl.Transformer
 
-  import IFix.Blame, only: [events: 1]
+  import IFix.Blame.Info, only: [events: 1]
 
   def before?(_), do: true
 
-  def transform(resource, dsl) do
-    case Enum.empty?(events(resource)) do
+  def transform(dsl) do
+    case Enum.empty?(events(dsl)) do
       true ->
         with {:ok, dsl} <- add_default_event(dsl, :created, :create),
              {:ok, dsl} <- add_default_event(dsl, :updated, :update) do

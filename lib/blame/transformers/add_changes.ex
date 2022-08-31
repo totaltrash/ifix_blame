@@ -1,18 +1,18 @@
 defmodule IFix.Blame.Transformers.AddChanges do
-  use Ash.Dsl.Transformer
+  use Spark.Dsl.Transformer
 
-  alias Ash.Dsl.Transformer
-  import IFix.Blame, only: [events: 1, actor_field_name: 1, timestamp_field_name: 1]
+  alias Spark.Dsl.Transformer
+  import IFix.Blame.Info, only: [events: 1, actor_attribute_name: 1, timestamp_attribute_name: 1]
 
   def after?(_), do: true
 
-  def transform(resource, dsl) do
-    Enum.reduce(events(resource), {:ok, dsl}, fn event, acc ->
-      add_change(acc, resource, event)
+  def transform(dsl) do
+    Enum.reduce(events(dsl), {:ok, dsl}, fn event, acc ->
+      add_change(acc, event)
     end)
   end
 
-  defp add_change({:ok, dsl}, _resource, event) do
+  defp add_change({:ok, dsl}, event) do
     dsl
     |> Transformer.get_entities([:actions])
     |> filter_actions(event)
@@ -20,7 +20,7 @@ defmodule IFix.Blame.Transformers.AddChanges do
       with {:ok, relate_actor} <-
              Transformer.build_entity(Ash.Resource.Dsl, [:actions, action.type], :change,
                change:
-                 Ash.Resource.Change.Builtins.relate_actor(actor_field_name(event),
+                 Ash.Resource.Change.Builtins.relate_actor(actor_attribute_name(event),
                    allow_nil?: true
                  )
              ),
@@ -28,7 +28,7 @@ defmodule IFix.Blame.Transformers.AddChanges do
              Transformer.build_entity(Ash.Resource.Dsl, [:actions, action.type], :change,
                change:
                  Ash.Resource.Change.Builtins.set_attribute(
-                   timestamp_field_name(event),
+                   timestamp_attribute_name(event),
                    &DateTime.utc_now/0
                  )
              ) do
@@ -42,7 +42,7 @@ defmodule IFix.Blame.Transformers.AddChanges do
     end)
   end
 
-  defp add_change({:error, error}, _, _), do: {:error, error}
+  defp add_change({:error, error}, _), do: {:error, error}
 
   defp filter_actions(actions, %{action_type: nil, actions: actions_for_event}) do
     Enum.filter(actions, &(&1.name in actions_for_event))

@@ -28,7 +28,7 @@ attributes from your resource.
 
 By default, Blame will create a `created_user` relationship and a `created_date` timestamp,
 and an `updated_user` and `updated_date` pair to record the most recent update. Blame also
-adds changes to look after the updating of these fields upon all `:create` and `:update`
+adds changes to look after the updating of these attributes upon all `:create` and `:update`
 action types.
 
 The minimum configuration for each resource is:

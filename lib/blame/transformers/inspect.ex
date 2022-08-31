@@ -1,9 +1,7 @@
 defmodule IFix.Blame.Transformers.Inspect do
-  use Ash.Dsl.Transformer
+  use Spark.Dsl.Transformer
 
-  def after?(_), do: true
-
-  def transform(module, dsl) do
-    {:ok, IO.inspect(dsl, label: module)}
+  def transform(dsl) do
+    {:ok, IO.inspect(dsl, label: "inspect")}
   end
 end
