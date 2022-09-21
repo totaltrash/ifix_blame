@@ -27,7 +27,7 @@ defmodule IFix.Blame.Transformers.AddRelationships do
              api: api(dsl),
              destination: actor_resource(dsl),
              destination_attribute: actor_attribute(dsl),
-             required?: false
+             allow_nil?: true
            ) do
       {:ok, Transformer.add_entity(dsl, [:relationships], user_relationship)}
     end
